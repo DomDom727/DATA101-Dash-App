@@ -36,6 +36,7 @@ df_industry = df.explode('industry_name')
 df_skill = df.explode('skill_name')
 
 app = Dash(__name__)
+server = app.server
 
 # Theme Colors
 light_theme = {
