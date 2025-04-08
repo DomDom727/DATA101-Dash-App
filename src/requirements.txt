@@ -1,0 +1,6 @@
+dash==3.0.2
+dash_daq==0.6.0
+geopandas
+ast
+pandas
+plotly
