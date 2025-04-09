@@ -68,7 +68,8 @@ app.layout = html.Div([
                 options=[
                     {'label': 'Industries', 'value': 'industry_name'},
                     {'label': 'Skills', 'value': 'skill_name'},
-                    {'label': 'Companies', 'value': 'company_name'}
+                    {'label': 'Companies', 'value': 'company_name'},
+                    {'label': 'Job Titles', 'value': 'title'}
                 ],
                 value='industry_name',
                 style={'width': '100%'}
@@ -221,12 +222,14 @@ def update_dashboard(chart_type, selected_state, salary_type, theme_value):
     color_scale_map = {
     'industry_name': 'Blues',
     'skill_name': 'Greens',
-    'company_name': 'Oranges'
+    'company_name': 'Oranges',
+    'title': 'Reds'
     }
     label_map = {
         'industry_name': 'Industries',
         'skill_name': 'Skills',
-        'company_name': 'Companies'
+        'company_name': 'Companies',
+        'title': 'Job Titles'
     }.get(chart_type, chart_type.replace("_", " ").title())
 
     salary_label_map = {
