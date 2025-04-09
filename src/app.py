@@ -80,7 +80,7 @@ app.layout = html.Div([
             html.Label("State Filter", style={'fontWeight': 'bold'}),
             dcc.Dropdown(
                 id='state-dropdown',
-                options=[{'label': state, 'value': state} for state in df['state'].unique()],
+                options=[{'label': state_name, 'value': state} for state, state_name in df[['state', 'state_name']].drop_duplicates().values],
                 value=None,
                 placeholder="Select a state",
                 style={'width': '100%'}
