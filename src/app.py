@@ -10,7 +10,7 @@ Original file is located at
 Borro, Domingo, Paden, Roque
 """
 
-from dash import Dash, dcc, html, Input, Output
+from dash import Dash, dcc, html, Input, Output, State, callback_context
 import pandas as pd
 import plotly.express as px
 import geopandas as gpd
