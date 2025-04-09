@@ -16,6 +16,7 @@ import plotly.express as px
 import geopandas as gpd
 import ast
 import dash_daq as daq
+from dash.dependencies import ALL
 
 df = pd.read_csv('DATA101_Combined_Dataset_Cleaned.csv')
 gdf = gpd.read_file('us-state-boundaries.geojson')
