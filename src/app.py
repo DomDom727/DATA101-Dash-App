@@ -55,112 +55,252 @@ dark_theme = {
     'paper_bg': '#2c2c2c'
 }
 
-# Layout
+# Button Options
+chart_buttons = [
+    {'label': 'Industries', 'value': 'industry_name'},
+    {'label': 'Skills', 'value': 'skill_name'},
+    {'label': 'Companies', 'value': 'company_name'}
+]
+
+salary_buttons = [
+    {'label': 'Median', 'value': 'med_salary'},
+    {'label': 'Maximum', 'value': 'max_salary'},
+    {'label': 'Minimum', 'value': 'min_salary'}
+]
+
+# App Layout
 app.layout = html.Div([
-    html.H1("USA Salary Analysis Dashboard", id='title', style={'textAlign': 'center', 'marginBottom': '30px'}),
-    html.H3("Based on 2023 LinkedIn Job Postings", id='subtitle', style={'textAlign': 'center', 'marginBottom': '30px'}),
+    html.H1("USA Salary Analysis Dashboard", id='title', className='title', style={'textAlign': 'center', 'marginBottom': '30px'}),
+    html.H3("Based on 2023-2024 LinkedIn Job Postings", id='subtitle', className='subtitle', style={'textAlign': 'center', 'marginBottom': '30px'}),
 
     html.Div([
         html.Div([
-            html.Label("Chart Type", style={'fontWeight': 'bold'}),
-            dcc.Dropdown(
-                id='chart-type-dropdown',
-                options=[
-                    {'label': 'Industries', 'value': 'industry_name'},
-                    {'label': 'Skills', 'value': 'skill_name'},
-                    {'label': 'Companies', 'value': 'company_name'},
-                    {'label': 'Job Titles', 'value': 'title'}
-                ],
-                value='industry_name',
-                style={'width': '100%'}
-            )
-        ], className='card', id='chart-card', style={'width': '400px'}),
+            html.Label("Chart Type", className='label'),
+            html.Div([
+                html.Button(btn['label'], id={'type': 'chart-btn', 'index': btn['value']},
+                            n_clicks=0, className='button')
+                for btn in chart_buttons
+            ], className='button-group')
+        ], className='card', id='chart-card'),
 
         html.Div([
-            html.Label("State Filter", style={'fontWeight': 'bold'}),
+            html.Label("State Filter", className='label'),
             dcc.Dropdown(
                 id='state-dropdown',
                 options=[{'label': state_name, 'value': state} for state, state_name in df[['state', 'state_name']].drop_duplicates().values],
                 value=None,
                 placeholder="Select a state",
+                className='dropdown',
                 style={'width': '100%'}
             )
-        ], className='card', id='state-card', style={'width': '400px'}),
+        ], className='card', id='state-card', style={'width': '30%'}),
 
         html.Div([
-            html.Label("Salary Type", style={'fontWeight': 'bold'}),
-            dcc.Dropdown(
-                id='salary-type-dropdown',
-                options=[
-                    {'label': 'Median Salary', 'value': 'med_salary'},
-                    {'label': 'Maximum Salary', 'value': 'max_salary'},
-                    {'label': 'Minimum Salary', 'value': 'min_salary'}
-                ],
-                value='med_salary',
-                style={'width': '100%'}
-            )
-        ], className='card', id='salary-card', style={'width': '400px'}),
-
-        html.Div([
+            html.Label("Salary Type", className='label'),
             html.Div([
-                html.Label("Dark Mode", style={'fontWeight': 'bold', 'marginRight': '10px'}),
-                daq.BooleanSwitch(
-                    id='theme-toggle',
-                    on=True,
-                    color="#119DFF"
-                )
-            ], style={'display': 'flex', 'alignItems': 'center'})
-        ], className='card', id='theme-card', style={'width': '400px', 'paddingTop': '15px'})
-    ], style={'display': 'flex', 'gap': '30px', 'justifyContent': 'center', 'marginBottom': '30px'}),
-
-    html.Div([
-        html.Div([
-            dcc.Graph(id='bar-chart')
-        ], className='card', id='bar-card', style={'flex': '1'}),
+                html.Button(btn['label'], id={'type': 'salary-btn', 'index': btn['value']},
+                            n_clicks=0, className='button')
+                for btn in salary_buttons
+            ], className='button-group')
+        ], className='card', id='salary-card'),
 
         html.Div([
-            dcc.Graph(id='histogram')
-        ], className='card', id='hist-card', style={'flex': '1'})
-    ], style={'display': 'flex', 'gap': '20px', 'marginBottom': '30px'}),
+            html.Label("Dark Mode", className='label'),
+            daq.BooleanSwitch(id='theme-toggle', on=True, color="#2c3e50", style={'width': '10%'})
+        ], className='card', id='theme-card', style={
+                      'width': '20%',
+                      'display': 'flex',
+                      'flexDirection': 'column',
+                      'alignItems': 'center'
+                  }),
+    ], className='control-row'),
 
     html.Div([
-        dcc.Graph(id='choropleth-map')
-    ], className='card', id='map-card', style={'marginBottom': '30px'})
-], id='main-container', className='dark-theme', style={
-    'padding': '20px',
-    'backgroundColor': light_theme['bg'],
-    'fontFamily': 'Arial, sans-serif',
-    'color': light_theme['text']
-})
+        html.Div([dcc.Graph(id='bar-chart')], className='card graph-card'),
+        html.Div([dcc.Graph(id='histogram')], className='card graph-card')
+    ], className='graph-row'),
 
-# CSS styling
+    html.Div([dcc.Graph(id='choropleth-map')], className='card', id='map-card')
+], id='main-container', className='light-theme')
+
+# Callback
+@app.callback(
+    Output('bar-chart', 'figure'),
+    Output('histogram', 'figure'),
+    Output('choropleth-map', 'figure'),
+    Output('main-container', 'className'),
+    Output({'type': 'chart-btn', 'index': ALL}, 'className'),
+    Output({'type': 'salary-btn', 'index': ALL}, 'className'),
+    Input({'type': 'chart-btn', 'index': ALL}, 'n_clicks'),
+    Input({'type': 'salary-btn', 'index': ALL}, 'n_clicks'),
+    Input('state-dropdown', 'value'),
+    Input('theme-toggle', 'on'),
+    State({'type': 'chart-btn', 'index': ALL}, 'id'),
+    State({'type': 'salary-btn', 'index': ALL}, 'id'),
+)
+def update_dashboard(chart_clicks, salary_clicks, selected_state, theme_on, chart_ids, salary_ids):
+    # Active Selection
+    chart_type = chart_ids[chart_clicks.index(max(chart_clicks))]['index']
+    salary_type = salary_ids[salary_clicks.index(max(salary_clicks))]['index']
+
+    # Theme
+    theme = dark_theme if theme_on else light_theme
+    theme_class = 'dark-theme' if theme_on else 'light-theme'
+
+    # Data Filtering
+    filtered_df = df[df['state'] == selected_state] if selected_state else df
+    if chart_type == 'industry_name':
+        exploded_df = df_industry[df_industry['state'] == selected_state] if selected_state else df_industry
+    elif chart_type == 'skill_name':
+        exploded_df = df_skill[df_skill['state'] == selected_state] if selected_state else df_skill
+    else:
+        exploded_df = filtered_df
+
+    top_x_df = exploded_df.groupby(chart_type)[salary_type].mean().sort_values(ascending=False).head(10).reset_index()
+
+    # Plotly Figures
+    bar_chart = px.bar(
+        top_x_df, x=salary_type, y=chart_type, orientation='h',
+        color=salary_type, color_continuous_scale='Blues',
+        title=f'Top 10 {chart_type.replace("_", " ").title()} by Salary',
+    )
+    bar_chart.update_layout(plot_bgcolor=theme['plot_bg'], paper_bgcolor=theme['paper_bg'], font_color=theme['text'], yaxis={'categoryorder': 'total ascending'}, width=750)
+
+    histogram = px.histogram(
+        filtered_df, x=salary_type,
+        title=f'{salary_type.replace("_", " ").title()} Distribution'
+    )
+    histogram.update_layout(plot_bgcolor=theme['plot_bg'], paper_bgcolor=theme['paper_bg'], font_color=theme['text'], width=750)
+
+    # Choropleth
+    choropleth_df = df.groupby('state')[salary_type].mean()
+    merged_gdf = gdf.set_index('stusab').join(choropleth_df)
+
+    choropleth_map = px.choropleth(
+        merged_gdf,
+        geojson=merged_gdf.geometry,
+        locations=merged_gdf.index,
+        color=salary_type,
+        hover_name=merged_gdf.index,
+        color_continuous_scale='Purples',
+        title=f'U.S. States by {salary_type.replace("_", " ").title()}'
+    )
+    choropleth_map.update_geos(scope='usa', projection_type='albers usa')
+    choropleth_map.update_layout(
+        geo=dict(bgcolor=theme['paper_bg']),
+        plot_bgcolor=theme['plot_bg'], paper_bgcolor=theme['paper_bg'], font_color=theme['text']
+    )
+
+    # Active Button Styling
+    chart_classes = ['button active' if id['index'] == chart_type else 'button' for id in chart_ids]
+    salary_classes = ['button active' if id['index'] == salary_type else 'button' for id in salary_ids]
+
+    return bar_chart, histogram, choropleth_map, theme_class, chart_classes, salary_classes
+
+# Custom CSS
 app.index_string = '''
 <!DOCTYPE html>
 <html>
     <head>
         {%metas%}
-        <title>Salary Dashboard</title>
+        <title>USA Salary Dashboard</title>
         {%favicon%}
         {%css%}
         <style>
+            body { margin: 0; font-family: Arial, sans-serif; }
+
+            .control-row {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 20px;
+                margin-bottom: 30px;
+                padding: 10px;
+            }
+
             .card {
                 border-radius: 10px;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
                 padding: 20px;
+                transition: background-color 0.3s ease;
+                background-color: white;
+                color: black;
             }
+
+            .dark-theme .card {
+                background-color: #2c2c2c;
+                color: white;
+            }
+
             .dark-theme .Select-control {
                 background-color: #2c3e50 !important;
                 color: white !important;
             }
+
             .dark-theme .Select-menu-outer {
                 background-color: #2c3e50 !important;
                 color: white !important;
             }
+
             .dark-theme .Select-value-label {
                 color: white !important;
             }
+
             .dark-theme .Select-option.is-focused {
                 background-color: #34495e !important;
+            }
+
+            .label {
+                font-weight: bold;
+                margin-bottom: 10px;
+                display: block;
+            }
+
+            .button-group {
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+            }
+
+            .button {
+                padding: 8px 15px;
+                background-color: #e0e0e0;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                transition: background-color 0.3s ease, transform 0.2s ease;
+            }
+
+            .button:hover {
+                background-color: #ccc;
+                transform: scale(1.02);
+            }
+
+            .active {
+                background-color: #2c3e50 !important;
+                color: white !important;
+            }
+
+            .graph-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 20px;
+                justify-content: center;
+                margin-bottom: 30px;
+            }
+
+            .graph-card {
+                flex: 1 1 500px;
+            }
+
+            .light-theme {
+                background-color: #f9f9f9;
+                color: #111111;
+            }
+
+            .dark-theme {
+                background-color: #1e1e1e;
+                color: white;
             }
         </style>
     </head>
@@ -174,143 +314,6 @@ app.index_string = '''
     </body>
 </html>
 '''
-
-# Callback to update charts and theme
-@app.callback(
-    [Output('bar-chart', 'figure'),
-     Output('histogram', 'figure'),
-     Output('choropleth-map', 'figure'),
-     Output('main-container', 'style'),
-     Output('chart-card', 'style'),
-     Output('state-card', 'style'),
-     Output('salary-card', 'style'),
-     Output('theme-card', 'style'),
-     Output('bar-card', 'style'),
-     Output('hist-card', 'style'),
-     Output('map-card', 'style'),
-     Output('title', 'style'),
-     Output('subtitle', 'style')],
-    [Input('chart-type-dropdown', 'value'),
-     Input('state-dropdown', 'value'),
-     Input('salary-type-dropdown', 'value'),
-     Input('theme-toggle', 'on')]
-)
-
-def update_dashboard(chart_type, selected_state, salary_type, theme_value):
-    theme = dark_theme if theme_value else light_theme
-
-    # Filter data
-    if selected_state:
-        filtered_df = df[df['state'] == selected_state]
-        if chart_type == 'industry_name':
-            exploded_df = df_industry[df_industry['state'] == selected_state]
-        elif chart_type == 'skill_name':
-            exploded_df = df_skill[df_skill['state'] == selected_state]
-        else:
-            exploded_df = df[df['state'] == selected_state]
-    else:
-        filtered_df = df
-        if chart_type == 'industry_name':
-            exploded_df = df_industry
-        elif chart_type == 'skill_name':
-            exploded_df = df_skill
-        else:
-            exploded_df = df
-
-
-    top_x_df = exploded_df.groupby(chart_type)[salary_type].mean().sort_values(ascending=False).head(10).reset_index()
-    color_scale_map = {
-    'industry_name': 'Blues',
-    'skill_name': 'Greens',
-    'company_name': 'Oranges',
-    'title': 'Reds'
-    }
-    label_map = {
-        'industry_name': 'Industries',
-        'skill_name': 'Skills',
-        'company_name': 'Companies',
-        'title': 'Job Titles'
-    }.get(chart_type, chart_type.replace("_", " ").title())
-
-    salary_label_map = {
-        'med_salary': 'Median',
-        'max_salary': 'Maximum',
-        'min_salary': 'Minimum'
-    }
-    salary_label = salary_label_map.get(salary_type, salary_type.title())
-
-    # Bar Chart
-    bar_chart = px.bar(top_x_df,
-                        x=salary_type,
-                        y=chart_type,
-                        orientation='h',
-                        color=salary_type,
-                        color_continuous_scale=color_scale_map.get(chart_type, 'Viridis'),
-                        title=f'Top 10 {chart_type.replace("_", " ").capitalize()} by Avg. Salary')
-    bar_chart.update_layout(plot_bgcolor=theme['plot_bg'],
-                            paper_bgcolor=theme['paper_bg'],
-                            yaxis={'categoryorder': 'total ascending'},
-                            font_color=theme['text'],
-                            xaxis_title='Average Yearly Salary (USD)',
-                            yaxis_title=label_map,
-                            title=f"Top 10 {label_map} by Average {salary_label} Salary")
-
-    # Histogram
-    histogram = px.histogram(filtered_df, x=salary_type,
-                             title=f'Distribution of {salary_label} Salary')
-    histogram.update_traces(marker=dict(color='rgba(100, 230, 230, 0.8)',
-                                        line=dict(color='black', width=1)))
-    histogram.update_layout(plot_bgcolor=theme['plot_bg'],
-                            paper_bgcolor=theme['paper_bg'],
-                            font_color=theme['text'],
-                            xaxis_title=f'{salary_label} Yearly Salary (USD)',
-                            yaxis_title='')
-
-    # Choropleth Map
-    merged_gdf = gdf.set_index('stusab').join(
-        df.groupby('state')[salary_type].mean(), on='stusab'
-    )
-    choropleth_map = px.choropleth(
-        merged_gdf,
-        geojson=merged_gdf.geometry,
-        locations=merged_gdf.index,
-        color=salary_type,
-        hover_name=merged_gdf.index,
-        color_continuous_scale="purples",
-        title=f"U.S. States by Average {salary_label} Salary"
-    )
-    choropleth_map.update_geos(scope='usa',
-                               projection_type="albers usa",
-                               showland=True)
-    choropleth_map.update_layout(geo=dict(bgcolor=theme['paper_bg']),
-                                 plot_bgcolor=theme['plot_bg'],
-                                 paper_bgcolor=theme['paper_bg'],
-                                 font_color=theme['text'])
-
-    # Update style dicts for theme
-    container_style = {'padding': '20px',
-                       'backgroundColor': theme['bg'],
-                       'fontFamily': 'Arial, sans-serif',
-                       'color': theme['text']}
-    card_style = {'width': '400px',
-                  'backgroundColor': theme['card'],
-                  'color': theme['text'],
-                  'borderRadius': '10px',
-                  'boxShadow': '0 4px 8px rgba(0, 0, 0, 0.1)',
-                  'padding': '20px'}
-    graph_card_style = {'backgroundColor': theme['card'],
-                        'color': theme['text'],
-                        'borderRadius': '10px',
-                        'boxShadow': '0 4px 8px rgba(0, 0, 0, 0.1)',
-                        'padding': '20px', 'flex': '1'}
-    title_style = {'textAlign': 'center',
-                   'marginBottom': '30px',
-                   'color': theme['text']}
-    subtitle_style = {'textAlign': 'center',
-                      'marginBottom': '30px',
-                      'color': theme['text']}
-
-    return bar_chart, histogram, choropleth_map, container_style, card_style, card_style, card_style, card_style, graph_card_style, graph_card_style, graph_card_style, title_style, subtitle_style
 
 if __name__ == '__main__':
     app.run(debug=True)
